@@ -5,10 +5,16 @@
 package frc.robot;
 
 import com.chopshop166.chopshoplib.commands.CommandRobot;
+import com.chopshop166.chopshoplib.controls.ButtonXboxController;
 
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
+import edu.wpi.first.wpilibj.XboxController.Button;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandBase;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 import frc.robot.subsystems.ExampleSubsystem;
 import io.github.oblarg.oblog.Logger;
 
@@ -27,9 +33,58 @@ public class Robot extends CommandRobot {
 
     final private SendableChooser<Command> autoChooser = new SendableChooser<>();
 
+    private final ButtonXboxController pilotController = new ButtonXboxController(0);
+
+    public static class CountCommand extends CommandBase {
+        int counter;
+
+        @Override
+        public void initialize() {
+            counter = 0;
+        }
+
+        @Override
+        public void execute() {
+            counter++;
+        }
+
+        @Override
+        public boolean isFinished() {
+            return counter >= 50 * 2;
+        }
+
+        @Override
+        public void end(boolean interrupted) {
+            System.out.println("Done. " + ((interrupted) ? ("Was Interuppted") : ("")));
+        }
+    }
+
     /** Set up the button bindings. */
     @Override
     public void configureButtonBindings() {
+        pilotController.getButton(Button.kX).whileHeld(startEnd("Billy", () -> {
+            System.out.println("Hello, Billy");
+            pilotController.setRumble(RumbleType.kLeftRumble, 1.);
+        }, () -> {
+            System.out.println("Goodbye, Billy");
+            pilotController.setRumble(RumbleType.kLeftRumble, 0.);
+        }));
+        pilotController.getButton(Button.kY).whenPressed(cmd("Built").onInitialize(() -> {
+            System.out.println("Hello, Billy2");
+            pilotController.setRumble(RumbleType.kLeftRumble, 1.);
+        }).onEnd(interrupted -> {
+            System.out.println("Goodbye, Billy2");
+            pilotController.setRumble(RumbleType.kLeftRumble, 0.);
+        }).finishedWhen(() -> false));
+
+        pilotController.getButton(Button.kB).whenPressed(
+                sequence("B_Sequence", new PrintCommand("Starting"), new CountCommand(), new PrintCommand("Ending")));
+
+        // pilotController.getButton(Button.kA).whenPressed(new InstantCommand(() -> {
+        // System.out.println(2 + 2);
+        // }));
+        // CountCommand counter = new CountCommand();
+        // pilotController.getButton(Button.kB).whenPressed(counter);
     }
 
     /** Send commands and data to Shuffleboard. */
@@ -50,7 +105,6 @@ public class Robot extends CommandRobot {
     public void robotInit() {
         super.robotInit();
         Logger.configureLoggingAndConfig(this, false);
-        configureButtonBindings();
     }
 
     @Override
