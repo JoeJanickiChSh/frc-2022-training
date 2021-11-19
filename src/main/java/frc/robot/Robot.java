@@ -6,6 +6,7 @@ package frc.robot;
 
 import com.chopshop166.chopshoplib.commands.CommandRobot;
 import com.chopshop166.chopshoplib.controls.ButtonXboxController;
+import com.chopshop166.chopshoplib.controls.ButtonXboxController.Direction;
 
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.XboxController.Button;
@@ -15,6 +16,7 @@ import edu.wpi.first.wpilibj2.command.CommandBase;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
+import frc.robot.subsystems.CounterSubsystem;
 import frc.robot.subsystems.ExampleSubsystem;
 import io.github.oblarg.oblog.Logger;
 
@@ -29,62 +31,20 @@ public class Robot extends CommandRobot {
 
     private Command autonomousCommand;
 
-    private final ExampleSubsystem exampleSubsystem = new ExampleSubsystem();
+    private final CounterSubsystem counterA = new CounterSubsystem("Counter A");
+    private final CounterSubsystem counterB = new CounterSubsystem("Counter B");
 
     final private SendableChooser<Command> autoChooser = new SendableChooser<>();
 
-    private final ButtonXboxController pilotController = new ButtonXboxController(0);
-
-    public static class CountCommand extends CommandBase {
-        int counter;
-
-        @Override
-        public void initialize() {
-            counter = 0;
-        }
-
-        @Override
-        public void execute() {
-            counter++;
-        }
-
-        @Override
-        public boolean isFinished() {
-            return counter >= 50 * 2;
-        }
-
-        @Override
-        public void end(boolean interrupted) {
-            System.out.println("Done. " + ((interrupted) ? ("Was Interuppted") : ("")));
-        }
-    }
+    private final ButtonXboxController pilotController0 = new ButtonXboxController(0);
+    private final ButtonXboxController pilotController1 = new ButtonXboxController(1);
 
     /** Set up the button bindings. */
     @Override
     public void configureButtonBindings() {
-        pilotController.getButton(Button.kX).whileHeld(startEnd("Billy", () -> {
-            System.out.println("Hello, Billy");
-            pilotController.setRumble(RumbleType.kLeftRumble, 1.);
-        }, () -> {
-            System.out.println("Goodbye, Billy");
-            pilotController.setRumble(RumbleType.kLeftRumble, 0.);
-        }));
-        pilotController.getButton(Button.kY).whenPressed(cmd("Built").onInitialize(() -> {
-            System.out.println("Hello, Billy2");
-            pilotController.setRumble(RumbleType.kLeftRumble, 1.);
-        }).onEnd(interrupted -> {
-            System.out.println("Goodbye, Billy2");
-            pilotController.setRumble(RumbleType.kLeftRumble, 0.);
-        }).finishedWhen(() -> false));
+        pilotController0.getButton(Button.kA).whileHeld(parallel("a++,b++", counterA.incrementWhileRunning(),
+                sequence("a>50?b++", counterA.check(50), counterB.incrementWhileRunning())));
 
-        pilotController.getButton(Button.kB).whenPressed(
-                sequence("B_Sequence", new PrintCommand("Starting"), new CountCommand(), new PrintCommand("Ending")));
-
-        // pilotController.getButton(Button.kA).whenPressed(new InstantCommand(() -> {
-        // System.out.println(2 + 2);
-        // }));
-        // CountCommand counter = new CountCommand();
-        // pilotController.getButton(Button.kB).whenPressed(counter);
     }
 
     /** Send commands and data to Shuffleboard. */
